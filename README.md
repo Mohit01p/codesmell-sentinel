@@ -168,9 +168,3 @@ codesmell-sentinel/
 ├── .env.example
 └── README.md
 ---
-
-## Remaining Work
-
-- **Deployment**: backend → Render/Railway, frontend → Vercel, replacing the 
-  ngrok tunnel with a permanent public URL
-- **Demo**: record a short video showing a PR triggering a live review comment
