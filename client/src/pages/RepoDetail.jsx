@@ -17,23 +17,25 @@ function RepoDetail({ repo, onBack }) {
   }, [repo._id]);
 
   if (selectedScanId) {
-    return (
-      <ScanDetail scanId={selectedScanId} onBack={() => setSelectedScanId(null)} />
-    );
+    return <ScanDetail scanId={selectedScanId} onBack={() => setSelectedScanId(null)} />;
   }
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
-      <button onClick={onBack} style={{ marginBottom: "1rem" }}>
-        ← Back to Dashboard
-      </button>
-      <h1>{repo.repoName}</h1>
-      <h2>Scan History</h2>
-      {loading ? (
-        <p>Loading scans...</p>
-      ) : (
-        <ScanHistoryTable scans={scans} onSelectScan={setSelectedScanId} />
-      )}
+    <div className="page">
+      <main className="content">
+        <button className="btn btn--ghost btn--back" onClick={onBack}>← Back to repositories</button>
+
+        <div className="section-heading">
+          <h1 className="mono">{repo.repoName}</h1>
+          <p className="muted">Scan history</p>
+        </div>
+
+        {loading ? (
+          <p className="muted">Loading scans…</p>
+        ) : (
+          <ScanHistoryTable scans={scans} onSelectScan={setSelectedScanId} />
+        )}
+      </main>
     </div>
   );
 }

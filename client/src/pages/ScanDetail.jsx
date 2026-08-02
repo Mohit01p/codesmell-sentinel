@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../api/axiosInstance";
 import FindingDetail from "../components/FindingDetail";
+import ScoreBadge from "../components/ScoreBadge";
 
 function ScanDetail({ scanId, onBack }) {
   const [scan, setScan] = useState(null);
@@ -18,27 +19,32 @@ function ScanDetail({ scanId, onBack }) {
       .finally(() => setLoading(false));
   }, [scanId]);
 
-  if (loading) return <p style={{ padding: "2rem" }}>Loading scan...</p>;
-  if (!scan) return <p style={{ padding: "2rem" }}>Scan not found.</p>;
+  if (loading) return <div className="page"><main className="content"><p className="muted">Loading scan…</p></main></div>;
+  if (!scan) return <div className="page"><main className="content"><p className="muted">Scan not found.</p></main></div>;
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
-      <button onClick={onBack} style={{ marginBottom: "1rem" }}>
-        ← Back to Scan History
-      </button>
-      <h1>
-        PR #{scan.prNumber} — {scan.prTitle}
-      </h1>
-      <p style={{ color: "#94a3b8" }}>
-        by {scan.prAuthor} · Score: {scan.overallScore}/100 · {scan.totalFindings} finding(s)
-      </p>
+    <div className="page">
+      <main className="content">
+        <button className="btn btn--ghost btn--back" onClick={onBack}>← Back to scan history</button>
 
-      <h2 style={{ marginTop: "1.5rem" }}>Findings</h2>
-      {findings.length === 0 ? (
-        <p>No issues found on the changed lines. ✅</p>
-      ) : (
-        findings.map((f) => <FindingDetail key={f._id} finding={f} />)
-      )}
+        <div className="scan-summary">
+          <div>
+            <h1>PR #{scan.prNumber} — {scan.prTitle}</h1>
+            <p className="muted">by {scan.prAuthor} · {scan.totalFindings} finding(s)</p>
+          </div>
+          <ScoreBadge score={scan.overallScore} />
+        </div>
+
+        <h2 className="section-subheading">Findings</h2>
+        {findings.length === 0 ? (
+          <div className="empty-state empty-state--success">
+            <p className="empty-state__title">No issues found</p>
+            <p className="empty-state__body">Nothing flagged on the changed lines.</p>
+          </div>
+        ) : (
+          findings.map((f) => <FindingDetail key={f._id} finding={f} />)
+        )}
+      </main>
     </div>
   );
 }

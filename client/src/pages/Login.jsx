@@ -4,37 +4,29 @@ function Login() {
   const { login } = useAuth();
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "60vh",
-        gap: "1.5rem",
-      }}
-    >
-      <h1>CodeSmell Sentinel</h1>
-      <p style={{ color: "#94a3b8" }}>
-        Automated PR reviews powered by static analysis + AI.
-      </p>
-      <button
-        onClick={login}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          padding: "0.75rem 1.5rem",
-          fontSize: "1rem",
-          borderRadius: "8px",
-          border: "none",
-          background: "#24292f",
-          color: "white",
-          cursor: "pointer",
-        }}
-      >
-        Login with GitHub
-      </button>
+    <div className="login">
+      <div className="login__scanline" />
+      <div className="login__card">
+        <div className="brand brand--center">
+          <span className="brand__mark" />
+          <span className="brand__name">CodeSmell Sentinel</span>
+        </div>
+
+        <p className="login__tagline">
+          Automated pull request reviews. Static analysis catches what's
+          provable; AI explains what it means.
+        </p>
+
+        <div className="login__log">
+          <p><span className="mono muted">$</span> eslint --changed-lines</p>
+          <p><span className="mono muted">$</span> semgrep --config=auto</p>
+          <p><span className="tag tag--high" style={{ marginRight: "0.5rem" }}>high</span>hardcoded secret on line 14</p>
+        </div>
+
+        <button className="btn btn--primary btn--wide" onClick={login}>
+          Login with GitHub
+        </button>
+      </div>
     </div>
   );
 }

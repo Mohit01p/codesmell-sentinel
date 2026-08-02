@@ -4,10 +4,16 @@ import Dashboard from "./pages/Dashboard";
 import "./App.css";
 
 function AppContent() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
-    return <p style={{ padding: "2rem" }}>Loading...</p>;
+    return (
+      <div className="page">
+        <main className="content">
+          <p className="muted">Loading…</p>
+        </main>
+      </div>
+    );
   }
 
   if (!user) {
@@ -20,9 +26,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <div style={{ fontFamily: "sans-serif" }}>
-        <AppContent />
-      </div>
+      <AppContent />
     </AuthProvider>
   );
 }
