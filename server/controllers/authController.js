@@ -43,7 +43,8 @@ async function handleGithubCallback(req, res, next) {
     res.cookie("token", token, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production",
     });
 
     res.redirect(process.env.CLIENT_URL || "http://localhost:5173");
@@ -69,7 +70,11 @@ async function getCurrentUser(req, res, next) {
 }
 
 function logout(req, res) {
-  res.clearCookie("token");
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
   res.json({ success: true, message: "Logged out" });
 }
 
