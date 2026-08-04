@@ -6,7 +6,10 @@ analysis, translating raw findings into plain-English explanations with
 Google Gemini, posting a formatted review comment on the PR, and saving 
 scan history to a dashboard.
 
-## Status: ✅ Core pipeline complete (Day 1–13 of 14)
+## Status: ✅ Fully built and deployed 
+
+🔗 **Live app**: https://codesmell-sentinel.vercel.app
+🔗 **Live API**: https://codesmell-sentinel.onrender.com/api/health
 
 ### What's working end-to-end
 - **Auth** — Login with GitHub (OAuth), JWT-based sessions
@@ -22,10 +25,6 @@ scan history to a dashboard.
 - **Scan history UI** — repo list → scan history table → finding detail view
 - **Edge cases handled** — large PRs (file cap), non-JS files skipped, AI/API 
   failures don't crash the pipeline
-
-### Not yet done
-- Production deployment (currently runs locally + ngrok tunnel)
-- Demo recording / final polish (Day 14)
 
 ---
 
@@ -168,3 +167,30 @@ codesmell-sentinel/
 ├── .env.example
 └── README.md
 ---
+---
+
+## Deployment
+
+- **Backend**: [Render](https://render.com) — free web service, auto-deploys 
+  on every push to `main`
+- **Frontend**: [Vercel](https://vercel.com) — free Hobby tier, auto-deploys 
+  on every push to `main`
+- **Database**: MongoDB Atlas (free tier)
+
+### Cross-domain auth note
+Since the frontend and backend live on different domains 
+(`vercel.app` / `onrender.com`), the session cookie uses 
+`sameSite: "none"` + `secure: true` in production so the browser allows 
+it across domains. In local dev it falls back to `sameSite: "lax"`.
+
+### Free-tier cold starts
+Render's free instance spins down after ~15 minutes of inactivity. The 
+first request after a period of inactivity can take 30-60 seconds to 
+respond (this includes the first webhook delivery after inactivity — 
+GitHub will still deliver it once the service wakes up).
+
+### Redeploying after env var changes
+- **Render**: auto-redeploys automatically when you save changed 
+  environment variables
+- **Vercel**: does **not** auto-redeploy on env var changes — you need to 
+  manually trigger a redeploy from the Deployments tab
