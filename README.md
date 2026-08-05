@@ -1,30 +1,63 @@
-# CodeSmell Sentinel
+# 🛡️ CodeSmell Sentinel
 
-AI-powered Security & Code Quality PR Reviewer. Automatically scans every 
-GitHub Pull Request the moment it's opened — running ESLint + Semgrep static 
-analysis, translating raw findings into plain-English explanations with 
-Google Gemini, posting a formatted review comment on the PR, and saving 
-scan history to a dashboard.
+**AI-powered Security & Code Quality PR Reviewer**
 
-## Status: ✅ Fully built and deployed 
+CodeSmell Sentinel automatically reviews every GitHub Pull Request the 
+moment it's opened. It combines deterministic static analysis (ESLint + 
+Semgrep) with AI-generated plain-English explanations (Google Gemini), 
+posting a clear, actionable review comment directly on the PR — before a 
+human reviewer even looks at it.
 
 🔗 **Live app**: https://codesmell-sentinel.vercel.app
-🔗 **Live API**: https://codesmell-sentinel.onrender.com/api/health
+🔗 **Live API health check**: https://codesmell-sentinel.onrender.com/api/health
 
-### What's working end-to-end
-- **Auth** — Login with GitHub (OAuth), JWT-based sessions
-- **Dashboard** — view your GitHub repos, activate/deactivate scanning per repo
-- **Webhooks** — real-time PR event listener, signature-verified for security
-- **Diff-aware scanning** — only reports issues on lines actually changed in the PR
-- **Static analysis** — ESLint (JS/TS quality) + Semgrep (security patterns), merged
-- **AI explanations** — Gemini turns raw tool warnings into plain-English 
-  explanations + suggested fixes, with graceful fallback if the API fails
-- **PR comments** — posts a formatted Markdown review directly on the PR
-- **Scoring** — deterministic weighted formula (100 − Σ severity penalties)
-- **Persistence** — every scan + finding saved to MongoDB
-- **Scan history UI** — repo list → scan history table → finding detail view
-- **Edge cases handled** — large PRs (file cap), non-JS files skipped, AI/API 
-  failures don't crash the pipeline
+---
+
+## The Problem
+
+Small dev teams, student teams, and open-source projects rarely have the 
+bandwidth for thorough manual code review. Bugs, security vulnerabilities, 
+and messy code slip into the main branch simply because nobody has time to 
+check every PR carefully.
+
+## The Approach
+
+Rather than relying on AI for everything, CodeSmell Sentinel combines two 
+layers deliberately:
+
+1. **Deterministic static analysis** (ESLint + Semgrep) — proven, 
+   rule-based tools that don't hallucinate and reliably catch known issues
+2. **An AI explanation layer** (Gemini) — translates raw, cryptic tool 
+   output into a plain-English explanation of *why* something is a 
+   problem, plus a specific suggested fix
+
+This shows deliberate engineering judgment: know when to use hard rules 
+and when to use AI, instead of defaulting to "AI for everything."
+
+---
+
+## Features
+
+- **GitHub OAuth login** — sign in with your GitHub account
+- **Repo dashboard** — activate/deactivate scanning per repository with 
+  one click
+- **Real-time webhook listener** — reacts to PRs the moment they're 
+  opened or updated, with HMAC signature verification for security
+- **Diff-aware scanning** — only reports issues on lines actually changed 
+  in the PR, not pre-existing code
+- **Dual static analysis** — ESLint (code quality) + Semgrep (security 
+  patterns like hardcoded secrets), merged into one result set
+- **AI explanations** — Gemini turns raw warnings into plain-English 
+  explanations + suggested fixes, with graceful fallback if the API is 
+  unavailable
+- **Automated PR comments** — posts a formatted Markdown review directly 
+  on the pull request
+- **Deterministic scoring** — a transparent, explainable 0-100 quality 
+  score (not AI-generated — see formula below)
+- **Scan history dashboard** — every scan and finding is saved and 
+  browsable: repo → scan history → finding detail
+- **Edge case handling** — large PRs are capped and flagged, non-code 
+  files are skipped, API failures don't crash the pipeline
 
 ---
 
@@ -35,106 +68,46 @@ scan history to a dashboard.
 | Frontend | React (Vite) |
 | Backend | Node.js + Express |
 | Database | MongoDB (Atlas) |
-| Auth | GitHub OAuth + JWT |
+| Auth | GitHub OAuth + JWT (httpOnly cookies) |
 | Static Analysis | ESLint + Semgrep |
 | AI | Google Gemini API |
-| Local tunneling (dev) | ngrok |
+| Hosting | Render (backend) + Vercel (frontend) |
 
 ---
 
-## Setup
+## Architecture
 
-### 1. Prerequisites
-- Node.js installed (`node -v` to check)
-- Python 3.8+ installed (`python --version`) — needed for Semgrep
-- A GitHub account
-- A free MongoDB Atlas account
-- A free ngrok account
-- A free Gemini API key
+Developer opens/updates a PR on GitHub
+│
+▼
+GitHub sends a Webhook event to the backend
+│
+▼
+Backend verifies the webhook signature (HMAC)
+│
+▼
+Backend fetches the PR's changed files/diff via the GitHub API
+│
+▼
+ESLint + Semgrep scan the changed files
+│
+▼
+Findings are filtered to only lines actually changed in the diff
+│
+▼
+Each finding is sent to Gemini for a plain-English explanation + fix
+│
+▼
+Backend posts a formatted review comment back onto the PR
+│
+▼
+Scan + findings are saved to MongoDB and shown on the dashboard
 
-### 2. MongoDB Atlas
-1. Create a free cluster at https://www.mongodb.com/cloud/atlas
-2. Add a database user (Database Access) — use a password with **only letters/numbers** to avoid connection-string issues
-3. Allow access from anywhere (Network Access → `0.0.0.0/0`) for local dev
-4. Copy the connection string (Database → Connect → Drivers)
-
-### 3. GitHub OAuth App
-1. Go to https://github.com/settings/developers → "New OAuth App"
-2. Homepage URL: `http://localhost:5173`
-3. Authorization callback URL: `http://localhost:5000/api/auth/github/callback`
-4. Copy the Client ID, generate and copy a Client Secret
-
-### 4. ngrok (for receiving GitHub webhooks locally)
-1. Sign up free at https://ngrok.com
-2. Install it (Microsoft Store or direct download)
-3. Run `ngrok config add-authtoken YOUR_TOKEN` (token from your ngrok dashboard)
-
-### 5. Semgrep
-```powershell
-pip install semgrep
-```
-
-### 6. Gemini API key
-1. Go to https://aistudio.google.com/apikey
-2. Create an API key (accept the default project if prompted)
-
-### 7. Environment variables
-Copy `.env.example` into `server/.env`:
-```powershell
-cp .env.example server/.env
-```
-Then fill in `server/.env` with:
-- `MONGO_URI` — your real Atlas connection string
-- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — from step 3
-- `JWT_SECRET` — any random string you make up
-- `GITHUB_WEBHOOK_SECRET` — any random string you make up (used in step 9)
-- `GEMINI_API_KEY` — from step 6
-- `SERVER_PUBLIC_URL` — your ngrok forwarding URL (added in step 9, changes each time ngrok restarts on the free plan)
-
----
-
-## Running the app (3 terminals)
-
-**Terminal 1 — Backend**
-```powershell
-cd server
-npm install
-npm start
-```
-Visit http://localhost:5000/api/health — should return a JSON success message.
-
-**Terminal 2 — Frontend**
-```powershell
-cd client
-npm install
-npm run dev
-```
-Visit http://localhost:5173
-
-**Terminal 3 — ngrok**
-```powershell
-ngrok http 5000
-```
-Copy the `https://....ngrok-free.dev` forwarding URL into `SERVER_PUBLIC_URL` in `server/.env`, then restart Terminal 1.
-
----
-
-## Using it
-
-1. Open http://localhost:5173 and log in with GitHub
-2. Activate a repo from your dashboard — this registers a webhook on it (needs ngrok running)
-3. Open a pull request on that repo (or push a commit to an existing one)
-4. Within ~10-20 seconds, a review comment appears on the PR
-5. Check "View History" on the repo in your dashboard to see the scan and its findings
-
-⚠️ **Note on ngrok free tier**: the public URL changes every time you restart 
-ngrok. If that happens, update `SERVER_PUBLIC_URL` in `.env`, restart the 
-backend, delete the old webhook from the repo's GitHub settings, and 
-re-activate the repo from the dashboard.
 
 ---
 
 ## Scoring Formula
+
 Overall Score = 100 − Σ(severity_weight × count)
 
 severity_weight:
@@ -144,11 +117,14 @@ medium = 4
 low = 1
 
 (floor capped at 0)
-Deterministic and explainable by design — not AI-generated, so it's not a black box.
+
+
+Deliberately simple, deterministic, and explainable — not a black box.
 
 ---
 
 ## Project Structure
+
 codesmell-sentinel/
 ├── client/ # React (Vite) frontend
 │ └── src/
@@ -166,31 +142,130 @@ codesmell-sentinel/
 │ └── utils/ # diffParser, commentFormatter
 ├── .env.example
 └── README.md
+
+
 ---
+
+## Database Schema
+
+**User** — githubId, username, accessToken (encrypted in a full production 
+setup), avatarUrl
+
+**Repo** — owner (ref User), repoName, githubRepoId, webhookId, isActive
+
+**Scan** — repo (ref Repo), prNumber, prTitle, prAuthor, status, 
+overallScore, totalFindings
+
+**Finding** — scan (ref Scan), filePath, lineNumber, tool, ruleId, 
+severity, rawMessage, aiExplanation, aiSuggestedFix
+
 ---
 
-## Deployment
+## Running Locally
 
-- **Backend**: [Render](https://render.com) — free web service, auto-deploys 
-  on every push to `main`
-- **Frontend**: [Vercel](https://vercel.com) — free Hobby tier, auto-deploys 
-  on every push to `main`
-- **Database**: MongoDB Atlas (free tier)
+### Prerequisites
+- Node.js
+- Python 3.8+ (for Semgrep)
+- A MongoDB Atlas account (free tier)
+- A GitHub OAuth App
+- An ngrok account (to receive webhooks locally)
+- A Google Gemini API key (free tier)
 
-### Cross-domain auth note
-Since the frontend and backend live on different domains 
-(`vercel.app` / `onrender.com`), the session cookie uses 
-`sameSite: "none"` + `secure: true` in production so the browser allows 
-it across domains. In local dev it falls back to `sameSite: "lax"`.
+### Setup
 
-### Free-tier cold starts
-Render's free instance spins down after ~15 minutes of inactivity. The 
-first request after a period of inactivity can take 30-60 seconds to 
-respond (this includes the first webhook delivery after inactivity — 
-GitHub will still deliver it once the service wakes up).
+```bash
+git clone https://github.com/Mohit01p/codesmell-sentinel.git
+cd codesmell-sentinel
 
-### Redeploying after env var changes
-- **Render**: auto-redeploys automatically when you save changed 
-  environment variables
-- **Vercel**: does **not** auto-redeploy on env var changes — you need to 
-  manually trigger a redeploy from the Deployments tab
+pip install semgrep
+cp .env.example server/.env
+# fill in server/.env with your real credentials
+```
+
+### Run (3 terminals)
+
+**Backend**
+```bash
+cd server
+npm install
+npm start
+```
+
+**Frontend**
+```bash
+cd client
+npm install
+npm run dev
+```
+
+**Ngrok** (for local webhook testing)
+```bash
+ngrok http 5000
+```
+Copy the forwarding URL into `SERVER_PUBLIC_URL` in `server/.env`, then 
+restart the backend.
+
+### Environment Variables
+
+| Variable | Description |
+|---|---|
+| `MONGO_URI` | MongoDB Atlas connection string |
+| `JWT_SECRET` | Any random string, used to sign session tokens |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | From your GitHub OAuth App |
+| `GITHUB_CALLBACK_URL` | OAuth callback URL |
+| `GITHUB_WEBHOOK_SECRET` | Any random string, used to verify webhook signatures |
+| `GEMINI_API_KEY` | From Google AI Studio |
+| `CLIENT_URL` | Frontend origin, used for CORS |
+| `SERVER_PUBLIC_URL` | Public backend URL (ngrok locally, real domain in production) |
+
+---
+
+## Deployment Notes
+
+- **Backend** (Render) and **frontend** (Vercel) live on different 
+  domains, so the session cookie uses `sameSite: "none"` + `secure: true` 
+  in production to work across domains (falls back to `sameSite: "lax"` 
+  in local dev).
+- Render's free tier spins down after ~15 minutes of inactivity — the 
+  first request afterward can take 30-60 seconds.
+- Render auto-redeploys on environment variable changes; Vercel requires 
+  a manual redeploy trigger after changing env vars.
+
+---
+
+## Security Notes
+
+- Webhook payloads are verified via HMAC-SHA256 signature comparison 
+  before any processing occurs
+- Sessions use httpOnly cookies (not accessible to client-side JS)
+- No secrets are committed to the repository — see `.env.example` for 
+  the required variables, actual values are injected via environment 
+  variables at runtime
+- If the Gemini API fails or rate-limits mid-scan, the pipeline falls 
+  back to posting raw findings without an AI explanation rather than 
+  failing the whole scan
+
+---
+
+## Possible Extensions
+
+- Slack notification on critical-severity findings
+- Trend chart: code quality score over time per repo
+- Python support (flake8/bandit) alongside JavaScript
+- Auto-block merge via GitHub's Check Runs API if score is below a threshold
+
+---
+
+## Resume Bullet
+
+> Built and deployed a full-stack MERN application that automatically 
+> reviews GitHub Pull Requests using ESLint and Semgrep static analysis 
+> combined with Gemini-powered plain-English explanations, posting 
+> real-time review comments via GitHub Webhooks with a custom-weighted 
+> code quality scoring system.
+
+---
+
+## License
+
+MIT
